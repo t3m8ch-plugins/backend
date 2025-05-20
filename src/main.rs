@@ -4,6 +4,7 @@ use actix_web::HttpServer;
 use actix_web::Responder;
 use actix_web::get;
 use actix_web::web;
+use anyhow::Context;
 use plugins::Plugin;
 use serde::Serialize;
 use std::env;
@@ -55,7 +56,8 @@ async fn plugin_manifest(name: web::Path<String>, data: web::Data<AppState>) -> 
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let plugins_dir = env::var("PLUGINS_DIR")?;
+    let plugins_dir = env::var("PLUGINS_DIR")
+        .with_context(|| "Failed to read PLUGINS_DIR environment variable")?;
 
     let plugins: Arc<Vec<plugins::Plugin>> = Arc::new(
         plugins::Plugin::load_from_dir(&plugins_dir)?
