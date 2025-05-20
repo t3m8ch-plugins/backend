@@ -1,0 +1,13 @@
+record version {
+    major: u32,
+    minor: u32,
+    patch: u32,
+}
+
+record manifest {
+    name: string,
+    description: string,
+    version: version,
+}
+
+get-manifest: func() -> manifest

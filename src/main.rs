@@ -1,24 +1,31 @@
-use wasmer::{Instance, Module, Store, Value, imports};
+use std::env;
+use std::fs;
+use wai_bindgen_wasmer::import;
+use wasmer::{Module, Store, imports};
+
+import!("./wai/plugin.wai");
 
 fn main() -> anyhow::Result<()> {
-    let module_wat = r#"
-    (module
-    (type $t0 (func (param i32) (result i32)))
-    (func $add_one (export "add_one") (type $t0) (param $p0 i32) (result i32)
-        local.get $p0
-        i32.const 1
-        i32.add))
-    "#;
+    let plugins_dir = env::var("PLUGINS_DIR")?;
+    let paths = fs::read_dir(plugins_dir)?;
 
-    let mut store = Store::default();
-    let module = Module::new(&store, &module_wat)?;
-    let import_object = imports! {};
-    let instance = Instance::new(&mut store, &module, &import_object)?;
+    for file in paths {
+        let file = file?;
+        let file_type = file.file_type()?;
 
-    let add_one = instance.exports.get_function("add_one")?;
-    let result = add_one.call(&mut store, &[Value::I32(42)])?;
-    println!("Result: {:?}", result);
-    assert_eq!(result[0], Value::I32(43));
+        if file_type.is_file() {
+            let wasm = fs::read(file.path())?;
+
+            let mut store = Store::default();
+            let module = Module::new(&store, &wasm)?;
+
+            let mut import_object = imports! {};
+            let (plugin, _) = plugin::Plugin::instantiate(&mut store, &module, &mut import_object)?;
+            let manifest = plugin.get_manifest(&mut store)?;
+
+            println!("{:?}", manifest);
+        }
+    }
 
     Ok(())
 }
