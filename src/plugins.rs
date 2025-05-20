@@ -11,15 +11,12 @@ pub struct Plugin {
 }
 
 impl Plugin {
-    pub fn load_from_dir(dir: &str) -> anyhow::Result<Vec<Plugin>> {
-        let mut plugins: Vec<Plugin> = vec![];
-
-        let paths = fs::read_dir(dir)?;
-        for file in paths {
-            let file = file?;
-            let file_type = file.file_type()?;
-
-            if file_type.is_file() {
+    pub fn load_from_dir(dir: &str) -> anyhow::Result<Vec<anyhow::Result<Plugin>>> {
+        Ok(fs::read_dir(dir)?
+            .filter_map(|file| file.ok())
+            .filter_map(|file| file.file_type().ok().zip(Some(file)))
+            .filter(|(file_type, _)| file_type.is_file())
+            .map(|(_, file)| {
                 let wasm = fs::read(file.path())?;
 
                 let mut store = Store::default();
@@ -28,15 +25,13 @@ impl Plugin {
                 let mut import_object = imports! {};
                 let (plugin, _) =
                     plugin::Plugin::instantiate(&mut store, &module, &mut import_object)?;
-
                 let manifest = plugin.get_manifest(&mut store)?;
-                plugins.push(Plugin {
+
+                Ok(Plugin {
                     wasm: plugin,
                     manifest,
-                });
-            }
-        }
-
-        Ok(plugins)
+                })
+            })
+            .collect())
     }
 }

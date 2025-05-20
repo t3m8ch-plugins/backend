@@ -57,7 +57,18 @@ async fn main() -> anyhow::Result<()> {
 
     let plugins_dir = env::var("PLUGINS_DIR")?;
 
-    let plugins = Arc::new(plugins::Plugin::load_from_dir(&plugins_dir)?);
+    let plugins: Arc<Vec<plugins::Plugin>> = Arc::new(
+        plugins::Plugin::load_from_dir(&plugins_dir)?
+            .into_iter()
+            .filter_map(|plugin| match plugin {
+                Ok(plugin) => Some(plugin),
+                Err(err) => {
+                    log::warn!("Failed to load plugin: {}", err);
+                    None
+                }
+            })
+            .collect(),
+    );
 
     HttpServer::new(move || {
         App::new()

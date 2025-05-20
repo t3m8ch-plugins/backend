@@ -311,6 +311,7 @@ dependencies = [
  "actix-web",
  "anyhow",
  "env_logger",
+ "log",
  "serde",
  "wai-bindgen-wasmer",
  "wasmer",
