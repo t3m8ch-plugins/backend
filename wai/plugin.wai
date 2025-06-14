@@ -10,4 +10,15 @@ record manifest {
     version: version,
 }
 
+record ui-node {
+    name: string,
+    props: list<tuple<string, string>>
+}
+
+record ui-tree {
+    nodes: list<ui-node>,
+    children: list<list<u32>>,
+}
+
 get-manifest: func() -> manifest
+get-ui-tree: func() -> ui-tree
