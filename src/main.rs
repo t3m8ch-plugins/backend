@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::App;
 use actix_web::HttpResponse;
 use actix_web::HttpServer;
@@ -125,6 +126,7 @@ async fn main() -> anyhow::Result<()> {
             .app_data(web::Data::new(AppState {
                 plugins: plugins.clone(),
             }))
+            .wrap(Cors::permissive())
             .service(plugin_manifest)
             .service(plugin_ui)
     })
