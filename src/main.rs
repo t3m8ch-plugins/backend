@@ -1,85 +1,20 @@
 use actix_cors::Cors;
 use actix_web::App;
-use actix_web::HttpResponse;
 use actix_web::HttpServer;
-use actix_web::Responder;
-use actix_web::get;
 use actix_web::web;
 use anyhow::Context;
 use config::Config;
-use plugins::Plugin;
-use serde::Serialize;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use crate::actix_state::AppState;
+use crate::api::plugins::plugin_manifest;
+use crate::api::plugins::plugin_ui;
+
+pub mod actix_state;
+pub mod api;
 pub mod config;
 pub mod plugins;
-
-struct AppState {
-    plugins: Arc<Mutex<Vec<Plugin>>>,
-}
-
-#[derive(Serialize)]
-struct PluginVersion {
-    major: u32,
-    minor: u32,
-    patch: u32,
-}
-
-#[derive(Serialize)]
-struct PluginManifestJson {
-    name: String,
-    description: String,
-    version: PluginVersion,
-}
-
-#[get("/plugins/{name}/manifest")]
-async fn plugin_manifest(name: web::Path<String>, data: web::Data<AppState>) -> impl Responder {
-    let name = name.into_inner();
-    log::info!("Requesting manifest for plugin: {}", name);
-
-    let plugins = data.plugins.lock().unwrap();
-    let plugin = plugins.iter().filter(|p| p.manifest.name == name).next();
-    match plugin {
-        Some(plugin) => {
-            log::debug!("Found plugin manifest for: {}", name);
-            HttpResponse::Ok().json(PluginManifestJson {
-                name: plugin.manifest.name.clone(),
-                description: plugin.manifest.description.clone(),
-                version: PluginVersion {
-                    major: plugin.manifest.version.major,
-                    minor: plugin.manifest.version.minor,
-                    patch: plugin.manifest.version.patch,
-                },
-            })
-        }
-        None => {
-            log::warn!("Plugin not found: {}", name);
-            HttpResponse::NotFound().body("Plugin not found")
-        }
-    }
-}
-
-#[get("/plugins/{name}/ui")]
-async fn plugin_ui(name: web::Path<String>, data: web::Data<AppState>) -> impl Responder {
-    let name = name.into_inner();
-    log::info!("Requesting UI for plugin: {}", name);
-
-    let mut plugins = data.plugins.lock().unwrap();
-    let plugin = plugins.iter_mut().find(|p| p.manifest.name == name);
-
-    match plugin {
-        Some(plugin) => {
-            log::debug!("Found plugin {}", name);
-            let ui = plugin.get_ui().unwrap();
-            HttpResponse::Ok().json(ui)
-        }
-        None => {
-            log::warn!("Plugin not found: {}", name);
-            HttpResponse::NotFound().body("Plugin not found")
-        }
-    }
-}
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
