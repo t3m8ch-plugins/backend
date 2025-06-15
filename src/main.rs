@@ -10,6 +10,7 @@ use std::sync::Mutex;
 use crate::actix_state::AppState;
 use crate::api::plugins::plugin_manifest;
 use crate::api::plugins::plugin_ui;
+use crate::api::ws::ws_handler;
 
 pub mod actix_state;
 pub mod api;
@@ -62,6 +63,7 @@ async fn main() -> anyhow::Result<()> {
                 plugins: plugins.clone(),
             }))
             .wrap(Cors::permissive())
+            .route("/ws", web::get().to(ws_handler))
             .service(plugin_manifest)
             .service(plugin_ui)
     })
